@@ -1,0 +1,531 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct{
+    int id;
+    char brand[50];
+    char model[50];
+    int year;
+    int status;
+} arac;
+
+typedef struct{
+    char kimlikno[13];
+    char name[40];
+    char phone[15];
+} musteribilgi;
+
+typedef struct{
+    int carid;
+    char customerid[13];
+    char rentdate[15];
+    char returndate[15];
+} kiralamabilgi;
+
+arac *araclar = NULL;
+int aracSayisi = 0;
+
+int aracSayisiniHesapla(){
+    FILE *fptr = fopen("arac.txt", "r");
+    int sayac = 0;
+    arac temp;
+
+    if(fptr == NULL) return 0;
+
+    while(fscanf(fptr, "%d %s %s %d %d",
+                 &temp.id, temp.brand, temp.model,
+                 &temp.year, &temp.status) != EOF){
+        sayac++;
+    }
+
+    fclose(fptr);
+    return sayac;
+}
+
+void araclariBellegeAl(){
+    FILE *fptr = fopen("arac.txt", "r");
+    int i = 0;
+
+    if(fptr == NULL || aracSayisi == 0) return;
+
+    araclar = (arac*)malloc(aracSayisi * sizeof(arac));
+
+    if(araclar == NULL){
+        printf("Bellek ayrilamadi!\n");
+        return;
+    }
+
+    while(fscanf(fptr, "%d %s %s %d %d",
+                 &araclar[i].id,
+                 araclar[i].brand,
+                 araclar[i].model,
+                 &araclar[i].year,
+                 &araclar[i].status) != EOF){
+        i++;
+    }
+
+    fclose(fptr);
+}
+
+int yeniIDgetir(){
+    int id=0;
+    FILE *fptr = fopen("arac_id.txt","r");
+    if (fptr != NULL) {
+        fscanf(fptr, "%d", &id);
+        fclose(fptr);
+    }
+    id++;
+    
+    fptr = fopen("arac_id.txt","w");
+    if (fptr != NULL) {
+        fprintf(fptr, "%d", id);
+        fclose(fptr);
+    }
+    return id;
+}
+
+void musteriekle(){
+    musteribilgi a;
+    
+    printf("-----Musteri Ekle----\n");
+    printf("TC NO: ");
+    scanf("%s",a.kimlikno);
+
+    int uzunluk = strlen(a.kimlikno);
+    
+    if(uzunluk != 11){
+        printf("TC NO 11den Buyuk veya Kucuk!\n");
+        return;
+    }
+    else{
+        printf("TC NO Gecerli.\n");
+    }
+    
+    printf("Ad ve Soyad (bosluksuz girin!) : ");
+    scanf("%s",a.name);
+    printf("Telefon No (0 ile baslayin!): ");
+    scanf("%s",a.phone);
+    
+    FILE *fptr = fopen("musteriler.txt","a");
+    if(fptr != NULL){
+        fprintf(fptr,"%s %s %s\n",a.name,a.kimlikno,a.phone);
+        fclose(fptr);
+        printf("Musteri eklendi!\n");
+    }
+    else{
+        printf("Musteri Eklenemedi!\n");
+    }
+}
+
+void musteriara(){
+    char kimlikno[13];
+    int durum=0;
+    musteribilgi a;
+    printf("Musterinin kimlik nosunu giriniz : ");
+    scanf("%s",kimlikno);
+    printf("\n");
+    
+    FILE *fptr = fopen("musteriler.txt","r");
+    if(fptr == NULL) return;
+
+    while(fscanf(fptr, "%s %s %s",a.name,a.kimlikno,a.phone) != EOF) {
+        if(strcmp(a.kimlikno,kimlikno)==0){
+            printf("Musteri : \n");
+            printf("Isim    : %s\n", a.name);
+            printf("TC No   : %s\n", a.kimlikno);
+            printf("Telefon : %s\n\n", a.phone);
+            durum = 1;
+            break;
+        }
+    }
+    if(durum == 0){
+        printf("Bu TC numarasina ait kayit bulunamadi.\n");
+    }
+    fclose(fptr);
+    printf("---------------------------\n");
+}
+
+void musterilistele(){
+    musteribilgi a;
+    FILE *fptr = fopen("musteriler.txt","r");
+    if(fptr == NULL) return;
+    
+    while(fscanf(fptr,"%s %s %s",a.name,a.kimlikno,a.phone) != EOF){
+        printf("Isim : %s \nTC NO : %s \nTelefon NO : %s\n\n",a.name,a.kimlikno,a.phone);
+    }
+    fclose(fptr);
+    printf("---------------------------\n");
+}
+
+void aracekle(){
+    printf("-----Arac Ekle----\n");
+    arac a;
+    a.id = yeniIDgetir();
+    
+    printf("Marka Girin : ");
+    scanf("%s",a.brand);
+    printf("Model Girin : ");
+    scanf("%s",a.model);
+    printf("Yil Girin : ");
+    scanf("%d",&a.year);
+    
+    a.status = 1; 
+    
+    FILE *fptr = fopen("arac.txt","a");
+    if(fptr != NULL){
+        fprintf(fptr,"%d %s %s %d %d\n",a.id,a.brand,a.model,a.year,a.status);
+        fclose(fptr);
+    }
+    else{
+        printf("Hata: Dosya acilamadi!\n");
+    }
+    printf("---------------------------\n");
+}
+
+void aracsil(){
+    arac a;
+    int silinecekID;
+    int bulundu = 0;
+
+    printf("---- Arac Silme Islemi ----\n");
+    printf("Silinecek Arac ID: ");
+    scanf("%d", &silinecekID);
+
+    FILE *dosya = fopen("arac.txt", "r");
+    FILE *gecici = fopen("gecici.txt", "w");
+
+    if(dosya == NULL){
+        printf("Hata: Kayit dosyasi bulunamadi!\n");
+        return;
+    }
+
+    while(fscanf(dosya, "%d %s %s %d %d", &a.id, a.brand, a.model, &a.year, &a.status) != EOF){
+        if(a.id == silinecekID){
+            bulundu = 1;
+            printf(">> Arac (ID: %d - %s %s) silindi.\n", a.id, a.brand, a.model);
+        }
+        else {
+            fprintf(gecici, "%d %s %s %d %d\n", a.id, a.brand, a.model, a.year, a.status);
+        }
+    }
+
+    fclose(dosya);
+    fclose(gecici);
+
+    if(bulundu){
+        if(remove("arac.txt") == 0){ 
+            rename("gecici.txt", "arac.txt");
+            printf("Liste guncellendi.\n");
+        } 
+        else {
+            printf("HATA: Eski dosya silinemedi! (Dosya acik olabilir)\n");
+        }
+    }
+    else {
+        remove("gecici.txt");
+        printf("Bu ID numarasina sahip arac bulunamadi.\n");
+    }
+}
+
+void aracara(){
+    arac a;
+    int id;
+    char durum[20];
+    
+    printf("ID Giriniz : ");
+    scanf("%d",&id);
+    printf("\n");
+    
+    FILE *fptr = fopen("arac.txt","r");
+    if(fptr == NULL) return;
+
+    while(fscanf(fptr,"%d %s %s %d %d",&a.id,a.brand,a.model,&a.year,&a.status) != EOF){
+        if(a.status == 1){
+            strcpy(durum, "Musait");
+        }
+        else{
+            strcpy(durum, "Kirada");
+        }
+        
+        if(id == a.id){
+            printf("Arac : \n");
+            printf("Marka : %s\n",a.brand);
+            printf("Model : %s\n",a.model);
+            printf("Yil   : %d\n",a.year);
+            printf("Durum : %s\n",durum);
+        }
+    }
+    fclose(fptr);
+    printf("---------------------------\n");
+}
+
+void araclistele(){
+    arac a;
+    char durum[20];
+    
+    FILE *fptr = fopen("arac.txt","r");
+    if(fptr == NULL) return;
+
+    while(fscanf(fptr,"%d %s %s %d %d",&a.id,a.brand,a.model,&a.year,&a.status) != EOF){
+        if(a.status == 1){
+            strcpy(durum, "Musait");
+        }
+        else{
+            strcpy(durum, "Kirada");
+        }
+        printf("ID : %d\nMarka : %s\nModel : %s\nYil : %d\nDurum : %s\n\n",a.id,a.brand,a.model,a.year,durum);
+    }
+    fclose(fptr);
+    printf("---------------------------\n");
+}
+
+void arackirala(){
+    int hedefID;
+    char musteriTC[13];
+    int aracBulundu = 0;
+    int musteriBulundu = 0;
+    arac b;
+    kiralamabilgi k;
+
+    printf("\n---- Arac Kirala ----\n");
+    araclistele();
+    printf("\n");
+    printf("Kiralanacak Arac ID: ");
+    scanf("%d", &hedefID);
+
+    FILE *dosyaArac = fopen("arac.txt", "r");
+    FILE *geciciArac = fopen("gecici_arac.txt", "w");
+
+    if(dosyaArac == NULL) {
+        printf("Arac dosyasi bulunamadi!\n");
+        return;
+    }
+
+    while(fscanf(dosyaArac, "%d %s %s %d %d", &b.id, b.brand, b.model, &b.year, &b.status) != EOF){
+        
+        if(b.id == hedefID){
+            aracBulundu = 1;
+            
+            if(b.status == 0){
+                printf("HATA: Bu arac zaten kirada!\n");
+                fprintf(geciciArac, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+            }
+            else {
+                printf("Musteri TC No: ");
+                scanf("%s", musteriTC);
+                
+                FILE *dosyaMusteri = fopen("musteriler.txt", "r");
+                char mName[40], mTC[13], mPhone[15];
+                
+                if(dosyaMusteri != NULL){
+                    while(fscanf(dosyaMusteri, "%s %s %s", mName, mTC, mPhone) != EOF){
+                        if(strcmp(mTC, musteriTC) == 0){
+                            musteriBulundu = 1;
+                            break;
+                        }
+                    }
+                    fclose(dosyaMusteri);
+                }
+
+                if(musteriBulundu){
+                    k.carid = hedefID;
+                    strcpy(k.customerid, musteriTC);
+                    printf("Kiralama Tarihi (GG.AA.YYYY): ");
+                    scanf("%s", k.rentdate);
+                    strcpy(k.returndate, "-");
+                    
+                    FILE *dosyaKira = fopen("kiralamalar.txt", "a");
+                    if(dosyaKira != NULL){
+                        fprintf(dosyaKira, "%d %s %s %s\n", k.carid, k.customerid, k.rentdate, k.returndate);
+                        fclose(dosyaKira);
+                        printf(">> Kiralama kaydi olusturuldu.\n");
+                    }
+                    
+                    b.status = 0; 
+                    fprintf(geciciArac, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+                    printf(">> Arac durumu 'Kirada' olarak guncellendi.\n");
+                    
+                } else {
+                    printf("HATA: Musteri bulunamadi! Once musteri ekleyin.\n");
+                    fprintf(geciciArac, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+                }
+            }
+        }
+        else {
+            fprintf(geciciArac, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+        }
+    }
+    
+    fclose(dosyaArac);
+    fclose(geciciArac);
+    
+    if(aracBulundu == 1){ 
+        remove("arac.txt");
+        rename("gecici_arac.txt", "arac.txt");
+    } else {
+        remove("gecici_arac.txt"); 
+        if(aracBulundu == 0) printf("Bu ID ile arac bulunamadi.\n");
+    }
+}
+
+void aracteslimal(){
+    int teslimID;
+    int bulundu = 0;
+    arac b;
+
+    printf("\n---- Arac Teslim Al ----\n");
+    printf("Teslim Edilecek Arac ID: ");
+    scanf("%d", &teslimID);
+
+    FILE *fptr = fopen("arac.txt", "r");
+    FILE *fptr2 = fopen("gecici_teslim.txt", "w");
+
+    if(fptr == NULL) {
+        printf("Hata: Arac dosyasi bulunamadi!\n");
+        return;
+    }
+
+    while(fscanf(fptr, "%d %s %s %d %d", &b.id, b.brand, b.model, &b.year, &b.status) != EOF){
+        if(b.id == teslimID){
+            bulundu = 1;
+            if(b.status == 1){
+                printf("Bu arac zaten musait.\n");
+            }
+            else {
+                b.status = 1;
+                printf("Arac basariyla teslim alindi.\n");
+            }
+            fprintf(fptr2, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+        }
+        else {
+            fprintf(fptr2, "%d %s %s %d %d\n", b.id, b.brand, b.model, b.year, b.status);
+        }
+    }
+
+    fclose(fptr);
+    fclose(fptr2);
+
+    if(bulundu){
+        remove("arac.txt");
+        rename("gecici_teslim.txt", "arac.txt");
+    } else {
+        remove("gecici_teslim.txt");
+        printf("Bu ID ile arac bulunamadi.\n");
+    }
+        
+    FILE *fptr3 = fopen("kiralamalar.txt", "r");
+    FILE *fptr4 = fopen("gecici_kiralama.txt", "w");
+    kiralamabilgi k;
+
+    if(fptr3 == NULL){
+        printf("Kiralama dosyasi bulunamadi.\n");
+        return;
+    }
+
+    while(fscanf(fptr3, "%d %s %s %s",
+                 &k.carid, k.customerid, k.rentdate, k.returndate) != EOF){
+
+        if(k.carid == teslimID && strcmp(k.returndate, "-") == 0){
+            printf("Teslim Tarihi (GG.AA.YYYY): ");
+            scanf("%s", k.returndate);
+        }
+
+        fprintf(fptr4, "%d %s %s %s\n",
+                k.carid, k.customerid, k.rentdate, k.returndate);
+    }
+
+    fclose(fptr3);
+    fclose(fptr4);
+
+    remove("kiralamalar.txt");
+    rename("gecici_kiralama.txt", "kiralamalar.txt");
+
+}
+
+void arackiralaliste(){
+    kiralamabilgi a;
+    
+    FILE *fptr = fopen("kiralamalar.txt", "r");
+    
+    if(fptr == NULL){
+        printf("Kiralama gecmisi bulunamadi.\n");
+        return;
+    }
+
+    printf("\n--- KIRALAMA GECMISI ---\n");
+
+    while(fscanf(fptr, "%d %s %s %s", &a.carid, a.customerid, a.rentdate, a.returndate) != EOF){
+        printf("Arac ID : %d\nMusteri TC : %s\nAlis Tarihi : %s\nTeslim Tarihi : %s\n\n", a.carid, a.customerid, a.rentdate, a.returndate);
+    }
+    
+    fclose(fptr);
+    printf("---------------------------\n");
+}
+
+int main() {
+    int secim;
+    
+    aracSayisi = aracSayisiniHesapla();
+	araclariBellegeAl();
+
+    
+    while(1){
+        printf("\n--- ARAC KIRALAMA SISTEMI ---\n");
+        printf("1. Arac Ekle\n");
+        printf("2. Arac Sil\n");
+        printf("3. Arac Ara\n");
+        printf("4. Arac Listele\n");
+        printf("---------------------------\n");
+        printf("5. Musteri Ekle\n");
+        printf("6. Musteri Ara\n");
+        printf("7. Musteri Listele\n");
+        printf("---------------------------\n");
+        printf("8. Arac Kirala\n");
+        printf("9. Arac Teslim Al\n");
+        printf("10. Kiralama Gecmisi\n");
+        printf("0. Cikis\n");
+        printf("---------------------------\n");
+        printf("Seciminiz: ");
+        scanf("%d", &secim);
+        printf("---------------------------\n\n");
+        
+        switch(secim){
+            case 0: 
+                printf("Cikis yapiliyor...\n");
+                free(araclar);
+                exit(0);
+            case 1: aracekle(); 
+			break;
+			
+            case 2: aracsil(); 
+			break;
+            
+			case 3: aracara(); 
+			break;
+            
+			case 4: araclistele(); 
+			break;
+            
+			case 5: musteriekle(); 
+			break;
+            
+			case 6: musteriara(); 
+			break;
+            
+			case 7: musterilistele(); 
+			break;
+            
+			case 8: arackirala(); 
+			break;
+            
+			case 9: aracteslimal(); 
+			break;
+            
+			case 10: arackiralaliste(); 
+			break;
+            
+			default: printf("Gecersiz secim!\n");
+        }
+    }
+}
